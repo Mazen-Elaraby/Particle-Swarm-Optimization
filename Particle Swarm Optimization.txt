@@ -1,0 +1,93 @@
+#Particle Swarm Optimizer over n dimensional vector space
+#cauchy sampling, vanila>> hyperparameters, topology and unconstrained
+#unconstrained search space (to be editted)
+#maxit (no variation instead?)
+#deals with non-differentiable & non-convex objective functions
+#robust against variation in hyper-parameters
+
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+'''Objective function will be the basic sphere benchmark function
+def obj_func(position):
+  return np.sum(position**2)'''
+
+#Objective function will be Rastrigin's function
+def obj_func(position):
+  err = 10.0 * np.shape(position)[1]
+  for i in range(np.shape(position)[1]):
+    xi = position[0,i]
+    err += (xi ** 2) - (10 * np.cos(2 * np.pi * xi))
+  return err
+
+class particle:
+  def __init__(self,dim):
+    #samples from a standard Cauchy–Lorentz distribution with mode = 0
+    self.position = np.random.default_rng().standard_cauchy((1,dim)) 
+    self.velocity = np.zeros(dim)
+    self.error = obj_func(self.position) #current output of objective function
+    self.local_best_position = self.position
+    self.local_best_error = self.error
+
+#Algorithm Parameters
+dim = 2          #Decision variables
+max_epochs = 500 #maximum number of iterations
+population = 100  #number of particles in swarm
+#Hyper-parameters
+w = 0.729   #inertia weight
+c1 = 1.49445  #cognitive weight
+c2 = 1.49445  #social weight
+
+def optimizer():
+  swarm = [particle(dim) for p in range(population)] #creating swarm
+
+  global_best_error = np.inf #initializing global best error to "infinity"
+  global_best_position = np.zeros(dim)
+  #updating global best error
+  for i in range(population):
+    if swarm[i].error < global_best_error:
+      global_best_error = swarm[i].error
+      global_best_position = swarm[i].position
+  for e in range(max_epochs):
+    for j in range(population):
+      #updating velocity components for current particle
+      for k in range(dim):
+        #Draw random numbers from a uniform distribution [0,1]
+        r1 = np.random.uniform()
+        r2 = np.random.uniform()
+
+        swarm[j].velocity[k] = ( (w * swarm[j].velocity[k]) +
+        (c1 * r1 * (swarm[j].local_best_position[0,k] - swarm[j].position[0,k])) +  
+        (c2 * r2 * (global_best_position[0,k] - swarm[j].position[0,k])) )  
+      #compute new position using new velocity
+      for k in range(dim):
+        swarm[j].position[0,k] += swarm[j].velocity[k]
+      # compute error of new position
+      swarm[j].error = obj_func(swarm[j].position)
+      #updating local best position and error
+      if (swarm[j].error < swarm[j].local_best_error):
+        swarm[j].local_best_error = swarm[j].error
+        swarm[j].local_best_position = swarm[j].position
+      #updating global best position and error
+      if (swarm[j].error < global_best_error):
+        global_best_error = swarm[j].error
+        global_best_position = swarm[j].position
+    return global_best_position
+
+print('Function argmin',optimizer()) 
+
+if (dim == 2):
+  #plotting objective function
+  x = np.linspace(-10,10,500)
+  y = np.linspace(-10,10,500)
+  X, Y = np.meshgrid(x,y)
+  f = lambda x, y: 20 +(x**2 - 10*np.cos(2*np.pi*x))+(y**2 - 10*np.cos(2*np.pi*y))
+  F = f(X,Y) 
+  #contour plot
+  plt.contour(X,Y,F,250)
+  #surface plot
+  fig = plt.figure(figsize = [12,8])
+  ax = fig.gca(projection = '3d')
+  ax.plot_surface(X, Y, F,cmap = cm.hot,linewidth=0.08)
+  plt.show()
